@@ -6,18 +6,28 @@
 //--------------------------------------------------------------
 void testApp::setup()
 {
-	dispRaw = false;
-	
 	ofxPCL::PointCloud cloud(new ofxPCL::PointCloud::value_type);
-	ofxPCL::PointNormalPointCloud cloud_with_normals(new ofxPCL::PointNormalPointCloud::value_type);
+	vector<ofxPCL::PointCloud> clouds;
 	
-	cloud = ofxPCL::loadPointCloud<ofxPCL::PointCloud>("bun0.pcd");
+	cloud = ofxPCL::loadPointCloud<ofxPCL::PointCloud>("table_scene_lms400.pcd");
+    
+	std::cerr << "PointCloud before filtering: " << cloud->width * cloud->height
+	<< " data points (" << pcl::getFieldsList (*cloud) << ")." << endl;
 	
-	meshraw = ofxPCL::toOF(cloud);
+	ofxPCL::downsample(cloud, ofVec3f(0.01f, 0.01f, 0.01f));
 	
-	ofxPCL::normalEstimation(cloud, cloud_with_normals);
-
-	mesh = ofxPCL::triangulate(cloud_with_normals, 0.025);
+	std::cerr << "PointCloud after filtering: " << cloud->width * cloud->height
+	<< " data points (" << pcl::getFieldsList (*cloud) << ")." << endl;
+	
+	ofxPCL::savePointCloud("table_scene_lms400_inliers.pcd", cloud);
+	
+	clouds = ofxPCL::euclideanSegmentation(cloud, pcl::SACMODEL_PLANE, 0.01, 10, 30);
+	
+	meshes.push_back(ofxPCL::toOF(cloud));
+	for( int i = 1; i < clouds.size(); i++ ) {
+		meshes.push_back(ofxPCL::toOF(clouds[i]));
+	}
+	mit = meshes.begin();
     
     
     //////////
@@ -161,12 +171,11 @@ void testApp::drawPointCloud() {
 	ofScale(100, 100, 100);
 	
 	glEnable(GL_DEPTH_TEST);
-	
-	if( dispRaw ) {
-		meshraw.drawVertices();
-	} else {
-		mesh.draw();
-	}
+
+    float color = .2;
+    for(mit = meshes.begin(); mit != meshes.end(); ++mit) {
+        mit->drawVertices();
+    }
 	
 	cam.end();
 }
@@ -270,6 +279,14 @@ void testApp::keyPressed(int key)
 			if(angle<-30) angle=-30;
 			kinect.setCameraTiltAngle(angle);
 			break;
+            
+		case OF_KEY_RIGHT:
+            advance(mit, 1);
+            if( mit == meshes.end() ) {
+                mit = meshes.begin();
+            }
+			break;
+
 	}
 }
 

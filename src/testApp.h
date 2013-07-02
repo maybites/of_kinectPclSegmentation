@@ -30,6 +30,9 @@ public:
 	ofVboMesh mesh, meshraw;
 	bool dispRaw;
     
+    vector<ofVboMesh> meshes;
+	vector<ofVboMesh>::iterator mit;
+
     //////////
     //KINECT//
     //////////
