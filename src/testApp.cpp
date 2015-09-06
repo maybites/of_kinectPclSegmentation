@@ -164,15 +164,47 @@ void testApp::draw() {
 }
 
 void testApp::drawPointCloud() {
+    
+    
+    vector<ofVec3f> points;
+	int w = 640;
+	int h = 480;
+	int step = 2;
+ 	for(int y = 0; y < h; y += step) {
+		for(int x = 0; x < w; x += step) {
+			if(kinect.getDistanceAt(x, y) > 0) {
+                points.push_back(kinect.getWorldCoordinateAt(x, y));
+			}
+		}
+	}
+   
+    ofxPCL::PointCloud cloud = ofxPCL::toPCL(points);
+	vector<ofxPCL::PointCloud> clouds;
+    	
+	ofxPCL::downsample(cloud, ofVec3f(0.01f, 0.01f, 0.01f));
+	
+	std::cerr << "PointCloud after filtering: " << cloud->width * cloud->height
+	<< " data points (" << pcl::getFieldsList (*cloud) << ")." << endl;
+		
+	clouds = ofxPCL::euclideanSegmentation(cloud, pcl::SACMODEL_PLANE, 0.01, 10, 30);
+	
+    meshes.clear();
+	meshes.push_back(ofxPCL::toOF(cloud));
+	/*
+    for( int i = 0; i < clouds.size(); i++ ) {
+		meshes.push_back(ofxPCL::toOF(clouds[i]));
+	}
+	mit = meshes.begin();
+    */
+    
 	ofBackground(0);
 	
 	cam.begin();
 
-	ofScale(100, 100, 100);
+    ofScale(1, -1, -1);
 	
 	glEnable(GL_DEPTH_TEST);
 
-    float color = .2;
     for(mit = meshes.begin(); mit != meshes.end(); ++mit) {
         mit->drawVertices();
     }
